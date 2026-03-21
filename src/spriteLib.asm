@@ -135,7 +135,7 @@ SPRITE:
 
       ldx #0
     checkAsteroidSlot:
-      lda SPRITE_ENABLE
+      lda asteroid_enabled_flags
       and asteroid_enabled_bitmap,x
       beq asteroidSlotAvailable
       inx
@@ -157,9 +157,9 @@ SPRITE:
       ora #1 // add 1 to get a value between 1 and 4
       sta asteroid_speed,x
       // enable asteroid by setting the corresponding bit in the enabled bitmap
-      lda SPRITE_ENABLE
+      lda asteroid_enabled_flags
       ora asteroid_enabled_bitmap,x
-      sta SPRITE_ENABLE
+      sta asteroid_enabled_flags
 
       // generate new asteroid spawn timer
       // GetRandom() 
@@ -170,7 +170,7 @@ SPRITE:
     // move asteroids
     ldx #0
   moveAsteroidLoop:
-    lda SPRITE_ENABLE
+    lda asteroid_enabled_flags
     and asteroid_enabled_bitmap,x
     beq notAsteroid
     // asteroid is enabled, so we update its position by adding its speed to
@@ -189,8 +189,8 @@ SPRITE:
     // asteroid is off screen, so we disable it
     lda asteroid_enabled_bitmap,x
     eor #$FF
-    and SPRITE_ENABLE
-    sta SPRITE_ENABLE
+    and asteroid_enabled_flags
+    sta asteroid_enabled_flags
     jmp notAsteroid
   notOffScreen:
   notAsteroid:
@@ -241,11 +241,21 @@ SPRITE:
     sta SPRITE_Y+4
   doneBulletUpdates:
 
-    // update asteroid sprite position registers based on which asteroids are active. We check the enabled bitmap to determine which asteroids are active, and for each active asteroid, we copy its X and Y position to the corresponding sprite registers. Since we have 4 asteroid sprites that can be active at once, we loop through the first 4 bits of the enabled bitmap to check which asteroids are active and update their positions accordingly.
+    // update asteroids that are enabled
+    lda SPRITE_ENABLE
+    and #%00000111
+    sta temp
+    lda asteroid_enabled_flags
+    asl // shift left 3 to move the enabled bits into the sprite enable bit positions for the asteroid sprites (bits 3-7)
+    asl
+    asl
+    ora temp
+    sta SPRITE_ENABLE
 
+    // update asteroid sprite position registers based on which asteroids are active. We check the enabled bitmap to determine which asteroids are active, and for each active asteroid, we copy its X and Y position to the corresponding sprite registers. Since we have 4 asteroid sprites that can be active at once, we loop through the first 4 bits of the enabled bitmap to check which asteroids are active and update their positions accordingly.
     ldx #0
   updateAsteroidLoop:
-    lda SPRITE_ENABLE
+    lda asteroid_enabled_flags
     and asteroid_enabled_bitmap,x
     beq notAsteroid
     // asteroid is enabled, so we update its position registers

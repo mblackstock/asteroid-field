@@ -25,7 +25,7 @@ bulletY:
   .byte 0
   .byte 0
 
-// 5 asteroidszs
+// 5 asteroids
 asteroid_spawn_timer: .byte 0 // frames to wait before spawning the next asteroid
 
 asteroid_speed:
@@ -49,9 +49,11 @@ asteroidY:
   .byte 0
   .byte 0 
 
+asteroid_enabled_flags: .byte 0 // each bit represents whether the corresponding asteroid is active or not
+
 asteroid_enabled_bitmap:
+  .byte %00000001
+  .byte %00000010
+  .byte %00000100
   .byte %00001000
   .byte %00010000
-  .byte %00100000
-  .byte %01000000
-  .byte %10000000
