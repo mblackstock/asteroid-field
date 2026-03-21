@@ -5,142 +5,9 @@ SPRITE:
 {
   updateSpritePositions:
   {
-    // read player direction and update playerX and playerY accordingly
-    lda playerDirection
-    beq noMovement
-
-    // move up
-    and #DIRECTION_UP
-    beq notUp
-    lda playerY
-    clc
-    adc #-PLAYER_SPEED
-    sta playerY
-  notUp:
-    // move down
-    lda playerDirection
-    and #DIRECTION_DOWN
-    beq notDown
-    lda playerY
-    clc
-    adc #PLAYER_SPEED
-    sta playerY
-  notDown:
-    lda playerDirection
-    and #DIRECTION_LEFT
-    beq notLeft
-    lda playerX
-    clc
-    adc #-PLAYER_SPEED
-    sta playerX
-  notLeft:
-    // move right
-    lda playerDirection
-    and #DIRECTION_RIGHT
-    beq notRight
-    lda playerX
-    clc
-    adc #PLAYER_SPEED
-    sta playerX
-  notRight:
-  noMovement:
-    // after processing input, reset playerDirection to none
-    lda #DIRECTION_NONE
-    sta playerDirection
-
-    // decrement fire timer if it's above 0
-    lda fireTimer
-    beq fireButtonReady
-    dec fireTimer
-
-  fireButtonReady:
-    // if gun not fired, skip bullet creation and just update positions of
-    // any active bullets
-    lda playerFired
-    beq noBulletFired
-
-    // create a bullet at the player's position in the first available bullet slot.
-    // We determine if a bullet slot is available by checking the bullet enabled flags
-
-    ldx #0
-  checkBulletSlot:
-    lda bullet_enabled_flags
-    and sprite_enabled_bitmap,x
-    beq bulletSlotAvailable
-    inx
-    cpx #2
-    beq noBulletFired  // no slots available, so we skip creating a new bullet
-    jmp checkBulletSlot  
-
-  bulletSlotAvailable:
-    lda playerX
-    sta bulletX,x
-    lda playerY
-    sta bulletY,x
-    // enable bullet by setting the corresponding bit in the enabled bitmap
-    lda bullet_enabled_flags
-    ora sprite_enabled_bitmap,x
-    sta bullet_enabled_flags
-
-  doneCreatingBullet:
-    // handled the shot, start the fire timer
-    lda #0
-    sta playerFired
-
-  noBulletFired:
-
-    // update bullet positions by looping through the bullet slots and checking if they are active by looking at the enabled bitmap. If a bullet is active, we update its position by subtracting the bullet speed from its Y position to move it up the screen. If the bullet's Y position goes below 0, we disable the bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 (which we check for at the start of this routine to determine if the bullet is active or not) to effectively remove it from the screen.
-    ldx #0
-  moveBulletLoop:
-    lda bullet_enabled_flags
-    and sprite_enabled_bitmap,x
-    beq noBullet
-    lda bulletY,x
-    sec
-    sbc #BULLET_SPEED
-    bcc bulletOffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
-    sta bulletY,x
-    jmp doneMovingBullet
-  bulletOffScreen:
-    // disable bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 to effectively remove it from the screen
-    lda #0
-    sta bulletX,x
-    lda sprite_enabled_bitmap,x
-    eor #$FF
-    and bullet_enabled_flags
-    sta bullet_enabled_flags
-  noBullet:
-  doneMovingBullet:
-    inx
-    cpx #2
-    bne moveBulletLoop
-
-    // now update bullet positions (subtract bullet speed from Y position)
-    lda bulletX
-    beq checkBullet2
-    sec
-    lda bulletY
-    sbc #BULLET_SPEED
-    bcc bullet1OffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
-    sta bulletY
-    jmp checkBullet2
-  bullet1OffScreen:
-    lda #0
-    sta bulletX   // disables bullet by setting its X position to 0, which we check for at the start of this routine to determine if the bullet is active or not
-
-  checkBullet2:
-    lda bulletX+1
-    beq doneBullets
-    sec
-    lda bulletY+1
-    sbc #BULLET_SPEED
-    bcc bullet2OffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
-    sta bulletY+1
-    jmp doneBullets
-  bullet2OffScreen:
-    lda #0
-    sta bulletX+1   // disables bullet by setting its X position to 0, which we check for at the start of this routine to determine if the bullet is active or not
-  doneBullets:
+    jsr updatePlayerState
+    jsr updateBulletState
+  
     // has timer expired to create new asteroid? create if so
     lda asteroid_spawn_timer
     beq createAsteroid
@@ -223,15 +90,140 @@ SPRITE:
     rts
   }
 
+  updatePlayerState:
+  {
+    // read player direction and update playerX and playerY accordingly
+    lda playerDirection
+    beq noMovement
+
+    // move up
+    and #DIRECTION_UP
+    beq notUp
+    lda playerY
+    clc
+    adc #-PLAYER_SPEED
+    sta playerY
+  notUp:
+    // move down
+    lda playerDirection
+    and #DIRECTION_DOWN
+    beq notDown
+    lda playerY
+    clc
+    adc #PLAYER_SPEED
+    sta playerY
+  notDown:
+    lda playerDirection
+    and #DIRECTION_LEFT
+    beq notLeft
+    lda playerX
+    clc
+    adc #-PLAYER_SPEED
+    sta playerX
+  notLeft:
+    // move right
+    lda playerDirection
+    and #DIRECTION_RIGHT
+    beq notRight
+    lda playerX
+    clc
+    adc #PLAYER_SPEED
+    sta playerX
+  notRight:
+  noMovement:
+    // after processing input, reset playerDirection to none
+    lda #DIRECTION_NONE
+    sta playerDirection
+    rts
+  }
+
+  updateBulletState:
+  {
+
+    // decrement fire timer if it's above 0
+    lda fireTimer
+    beq fireButtonReady
+    dec fireTimer
+
+  fireButtonReady:
+    // if gun not fired, skip bullet creation and just update positions of
+    // any active bullets
+    lda playerFired
+    beq noBulletFired
+
+    // create a bullet at the player's position in the first available bullet slot.
+    // We determine if a bullet slot is available by checking the bullet enabled flags
+
+    ldx #0
+  checkBulletSlot:
+    lda bullet_enabled_flags
+    and sprite_enabled_bitmap,x
+    beq bulletSlotAvailable
+    inx
+    cpx #2
+    beq noBulletFired  // no slots available, so we skip creating a new bullet
+    jmp checkBulletSlot  
+
+  bulletSlotAvailable:
+    lda playerX
+    sta bulletX,x
+    lda playerY
+    sta bulletY,x
+    // enable bullet by setting the corresponding bit in the enabled bitmap
+    lda bullet_enabled_flags
+    ora sprite_enabled_bitmap,x
+    sta bullet_enabled_flags
+
+  doneCreatingBullet:
+    // handled the shot, start the fire timer
+    lda #0
+    sta playerFired
+
+  noBulletFired:
+
+    // update bullet positions by looping through the bullet slots and checking if they are active by looking at the enabled bitmap. If a bullet is active, we update its position by subtracting the bullet speed from its Y position to move it up the screen. If the bullet's Y position goes below 0, we disable the bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 (which we check for at the start of this routine to determine if the bullet is active or not) to effectively remove it from the screen.
+    ldx #0
+  moveBulletLoop:
+    lda bullet_enabled_flags
+    and sprite_enabled_bitmap,x
+    beq noBullet
+    lda bulletY,x
+    sec
+    sbc #BULLET_SPEED
+    bcc bulletOffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
+    sta bulletY,x
+    jmp doneMovingBullet
+  bulletOffScreen:
+    // disable bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 to effectively remove it from the screen
+    lda #0
+    sta bulletX,x
+    lda sprite_enabled_bitmap,x
+    eor #$FF
+    and bullet_enabled_flags
+    sta bullet_enabled_flags
+  noBullet:
+  doneMovingBullet:
+    inx
+    cpx #2
+    bne moveBulletLoop
+
+    rts
+  }
+
+
   updateSpriteRegisters:
   {
+    // ----- update sprite registers based on game state -----
+
+    // player is always enabled
+
     // copy playerX and playerY to the first sprite's position registers
     lda playerX
     sta SPRITE_X
     lda playerY
-    sta SPRITE_Y  
+    sta SPRITE_Y 
 
-    // update bullets that are enabled
+    // update SPRITE_ENABLE register based on which bullets are active by checking the bullet enabled bitmap and setting the corresponding bits in the sprite enable register for the bullet sprites (bits 1 and 2)
     lda SPRITE_ENABLE
     and #%11111001
     sta temp
