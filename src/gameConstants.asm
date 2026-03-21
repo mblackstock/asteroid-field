@@ -8,6 +8,6 @@
 .label DIRECTION_NONE = %00000000
 
 
-.label PLAYER_SPEED = 2
-.label BULLET_SPEED = 4
+.label PLAYER_SPEED = 1
+.label BULLET_SPEED = 2
 .label FIRE_TIMER_MAX = 10 // frames to wait before allowing the player to fire again (to prevent firing too rapidly)

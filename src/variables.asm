@@ -14,9 +14,8 @@ fireTimer: .byte FIRE_TIMER_MAX // frames to wait before allowing the player to
 // fire again (to prevent firing too rapidly)
 
 // two bullet positions
-// bulletX zero means the bullet slot is available,
-// since the player can't be at x=0, so we can use that to determine if a bullet
-// is active or not. This way we don't need a separate enabled bitmap for bullets.
+bullet_enabled_flags: .byte 0 // each bit represents whether the corresponding bullet is active or not
+
 bulletX:
   .byte 0
   .byte 0
@@ -51,9 +50,13 @@ asteroidY:
 
 asteroid_enabled_flags: .byte 0 // each bit represents whether the corresponding asteroid is active or not
 
-asteroid_enabled_bitmap:
+// bitmaps for checking if a bullet or asteroid is enabled based on the bit index
+sprite_enabled_bitmap:
   .byte %00000001
   .byte %00000010
   .byte %00000100
   .byte %00001000
   .byte %00010000
+  .byte %00100000
+  .byte %01000000
+  .byte %10000000
