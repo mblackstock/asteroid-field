@@ -7,87 +7,7 @@ SPRITE:
   {
     jsr updatePlayerState
     jsr updateBulletState
-  
-    // has timer expired to create new asteroid? create if so
-    lda asteroid_spawn_timer
-    beq createAsteroid
-    dec asteroid_spawn_timer
-    jmp doneAsteroidSpawn
-
-    // ---------- asteroid spawning and movement ----------
-
-  createAsteroid:
-    // find the first available asteroid slot by checking the enabled bitmap, and create an asteroid in that slot. We set the asteroid's initial Y position to 0 (top of the screen)
-    // and we set its X position to a random value between 0 and 255 by reading from the noise generator's random value register, which we set up in the main game setup routine. We also give the asteroid a random speed by reading another random value from the noise generator and masking it to a smaller range (e.g., 1-3) to use as the asteroid's speed.
-
-    ldx #0
-  checkAsteroidSlot:
-    lda asteroid_enabled_flags
-    and sprite_enabled_bitmap,x
-    beq asteroidSlotAvailable
-    inx
-    cpx #5
-    beq doneAsteroidSpawn 
-    jmp checkAsteroidSlot
-
-  asteroidSlotAvailable:
-    // set asteroid X position to random value between 0 and 255
-    GetRandom() // read random value for asteroid X position
-    sta asteroidX,x
-    // set asteroid Y position to 0 (top of the screen)
-    lda #0
-    sta asteroidY,x
-
-    // set asteroid speed to random value between 1 and 3
-    GetRandom() // read random value for asteroid speed
-    and #%00000011 // mask to get a value between 0 and 3
-    ora #1 // add 1 to get a value between 1 and 4
-    sta asteroid_speed,x
-    // enable asteroid by setting the corresponding bit in the enabled bitmap
-    lda asteroid_enabled_flags
-    ora sprite_enabled_bitmap,x
-    sta asteroid_enabled_flags
-
-    // generate new asteroid spawn timer
-    // GetRandom() 
-    lda #30 // minimum spawn time of 30 frames (0.5 seconds at 60fps)
-    sta asteroid_spawn_timer 
-  doneAsteroidSpawn:
-
-    // move asteroids
-    ldx #0
-  moveAsteroidLoop:
-    lda asteroid_enabled_flags
-    and sprite_enabled_bitmap,x
-    beq notAsteroid
-    // asteroid is enabled, so we update its position by adding its speed to
-    // its Y position
-    lda asteroidY,x
-    clc
-    adc asteroid_speed,x
-    sta asteroidY,x
-    // if the asteroid's Y position is greater than the screen height, we disable it by
-    // clearing the corresponding bit in the enabled bitmap and skip updating its position
-    clc
-    cmp #SCREEN_HEIGHT
-    bcc notOffScreen
-    lda #0
-    sta asteroidY,x
-    // asteroid is off screen, so we disable it
-    lda sprite_enabled_bitmap,x
-    eor #$FF
-    and asteroid_enabled_flags
-    sta asteroid_enabled_flags
-    jmp notAsteroid
-  notOffScreen:
-  notAsteroid:
-    inx
-    cpx #5
-    bne moveAsteroidLoop
-      
-    // check for collisions between player and asteroids, and bullets and asteroids
-
-    rts
+    jsr updateAsteroidState
   }
 
   updatePlayerState:
@@ -210,6 +130,89 @@ SPRITE:
     rts
   }
 
+  updateAsteroidState:
+  {
+    // has timer expired to create new asteroid? create if so
+    lda asteroid_spawn_timer
+    beq createAsteroid
+    dec asteroid_spawn_timer
+    jmp doneAsteroidSpawn
+
+    // ---------- asteroid spawning and movement ----------
+
+  createAsteroid:
+    // find the first available asteroid slot by checking the enabled bitmap, and create an asteroid in that slot. We set the asteroid's initial Y position to 0 (top of the screen)
+    // and we set its X position to a random value between 0 and 255 by reading from the noise generator's random value register, which we set up in the main game setup routine. We also give the asteroid a random speed by reading another random value from the noise generator and masking it to a smaller range (e.g., 1-3) to use as the asteroid's speed.
+
+    ldx #0
+  checkAsteroidSlot:
+    lda asteroid_enabled_flags
+    and sprite_enabled_bitmap,x
+    beq asteroidSlotAvailable
+    inx
+    cpx #5
+    beq doneAsteroidSpawn 
+    jmp checkAsteroidSlot
+
+  asteroidSlotAvailable:
+    // set asteroid X position to random value between 0 and 255
+    GetRandom() // read random value for asteroid X position
+    sta asteroidX,x
+    // set asteroid Y position to 0 (top of the screen)
+    lda #0
+    sta asteroidY,x
+
+    // set asteroid speed to random value between 1 and 3
+    GetRandom() // read random value for asteroid speed
+    and #%00000011 // mask to get a value between 0 and 3
+    ora #1 // add 1 to get a value between 1 and 4
+    sta asteroid_speed,x
+    // enable asteroid by setting the corresponding bit in the enabled bitmap
+    lda asteroid_enabled_flags
+    ora sprite_enabled_bitmap,x
+    sta asteroid_enabled_flags
+
+    // generate new asteroid spawn timer
+    // GetRandom() 
+    lda #30 // minimum spawn time of 30 frames (0.5 seconds at 60fps)
+    sta asteroid_spawn_timer 
+  doneAsteroidSpawn:
+
+    // move asteroids
+    ldx #0
+  moveAsteroidLoop:
+    lda asteroid_enabled_flags
+    and sprite_enabled_bitmap,x
+    beq notAsteroid
+    // asteroid is enabled, so we update its position by adding its speed to
+    // its Y position
+    lda asteroidY,x
+    clc
+    adc asteroid_speed,x
+    sta asteroidY,x
+    // if the asteroid's Y position is greater than the screen height, we disable it by
+    // clearing the corresponding bit in the enabled bitmap and skip updating its position
+    clc
+    cmp #SCREEN_HEIGHT
+    bcc notOffScreen
+    lda #0
+    sta asteroidY,x
+    // asteroid is off screen, so we disable it
+    lda sprite_enabled_bitmap,x
+    eor #$FF
+    and asteroid_enabled_flags
+    sta asteroid_enabled_flags
+    jmp notAsteroid
+  notOffScreen:
+  notAsteroid:
+    inx
+    cpx #5
+    bne moveAsteroidLoop
+      
+    // check for collisions between player and asteroids, and bullets and asteroids
+
+    rts
+  }
 
   updateSpriteRegisters:
   {
