@@ -1,0 +1,13 @@
+{
+    "name": "asteroid-field",
+    "description": "Project asteroid-field",
+    "toolkit": "kick",
+    "sources": [
+        "src/main.asm"
+    ],
+    "build": "debug",
+    "definitions": [],
+    "includes": [],
+    "args": [],
+    "compiler": ""
+}
