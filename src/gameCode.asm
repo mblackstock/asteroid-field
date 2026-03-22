@@ -32,7 +32,7 @@ gameSetup:
   SetUpSprite(0, 150, 150, COLOR_GREEN, shipSprite)
   SetUpSprite(1, 100, 100, COLOR_WHITE, bulletSprite)
   SetUpSprite(2, 100, 100, COLOR_WHITE, bulletSprite)
-  SetUpSprite(3, 200, 200, COLOR_WHITE, asteroidSprite)
+  SetUpSprite(3, 24, 50, COLOR_WHITE, asteroidSprite)
   SetUpSprite(4, 200, 200, COLOR_WHITE, asteroidSprite)
   SetUpSprite(5, 200, 200, COLOR_WHITE, asteroidSprite)
   SetUpSprite(6, 200, 200, COLOR_WHITE, asteroidSprite)
@@ -41,7 +41,7 @@ gameSetup:
   DisableAllSprites()
   EnableSprite(0)
   // EnableSprite(1)
-  EnableSprite(3)
+  //EnableSprite(3)
 
   GetRandom() // read random value for asteroid spawn timer
   sta asteroid_spawn_timer
@@ -52,7 +52,7 @@ gameLoop:
     cmp #$f8                // Compare to a specific line (e.g., $F8)
     bne WaitFrame           // Loop until raster reaches that line
     
-  jsr INPUT.readJoystick2
+    jsr INPUT.readJoystick2
   jsr SPRITE.updateSpritePositions
 
   // sprites update their positions in the interrupt routine,

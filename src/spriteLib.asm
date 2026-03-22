@@ -54,6 +54,110 @@ SPRITE:
     // after processing input, reset playerDirection to none
     lda #DIRECTION_NONE
     sta playerDirection
+
+    // check collision with asteroids here by looping through the active asteroids
+    // and checking if the player's position overlaps with any of the asteroids'
+    // positions. If there is a collision, we can handle it by, for example, ending
+    // the game or resetting the player's position.
+
+    clc
+    lda playerX
+    // add offset for collision detection based on the size of the player's sprite (e.g., 8 pixels)
+    adc #PLAYER_SPRITE_OFFSET_X
+    sta boxA_x1
+    clc
+    lda playerY
+    // add offset for collision detection based on the size of the player's sprite (e.g., 8 pixels)
+    adc #PLAYER_SPRITE_OFFSET_Y
+    sta boxA_y1
+
+    clc
+    lda playerX
+    adc #PLAYER_SPRITE_OFFSET_X+PLAYER_SPRITE_WIDTH
+    sta boxA_x2
+    clc
+    lda playerY
+    adc #PLAYER_SPRITE_OFFSET_Y+PLAYER_SPRITE_HEIGHT
+    sta boxA_y2
+
+    // now loop through active asteroids and check for collision with player using the collision detection routine. We can set the collision variables before calling the routine to specify which two objects we want to check for collision based on their X and Y positions.
+    ldx #0
+  checkAsteroidCollisionLoop:
+    lda asteroid_enabled_flags
+    and sprite_enabled_bitmap,x
+    beq noAsteroidCollisionCheck
+    // asteroid is active, so we set the collision variables for the asteroid's position and call
+    // the collision detection routine to check for collision between the player and this asteroid
+    clc
+    lda asteroidX,x
+    adc #ASTEROID_SPRITE_OFFSET_X
+    sta boxB_x1
+    clc
+    lda asteroidY,x
+    adc #ASTEROID_SPRITE_OFFSET_Y
+    sta boxB_y1
+    clc
+    lda asteroidX,x
+    adc #ASTEROID_SPRITE_OFFSET_X+ASTEROID_SPRITE_WIDTH
+    sta boxB_x2
+    clc
+    lda asteroidY,x
+    adc #ASTEROID_SPRITE_OFFSET_Y+ASTEROID_SPRITE_HEIGHT
+    sta boxB_y2
+    jsr checkCollision
+    lda collisionFlag // side effect setz zero flag
+    beq noAsteroidCollisionCheck
+    // collisionFlag is set, so we have a collision between the player and this asteroid.
+    
+    // handle collision (e.g., end game, reset player position, etc.)
+    // reset position, lose a life, etc. For now, we'll just reset the player's position to the default starting position.
+    lda #DEFAULT_PLAYER_X
+    sta playerX
+    lda #DEFAULT_PLAYER_Y
+    sta playerY
+    lda #0  // reset the flag
+    sta collisionFlag
+    jmp doneCollisionCheck
+    
+  noAsteroidCollisionCheck:
+    inx
+    cpx #5
+    bne checkAsteroidCollisionLoop
+
+  doneCollisionCheck:
+    rts
+  }
+
+  checkCollision:
+  {
+    /*
+    if boxA_x1 < boxB_x2 and boxA_x2 > boxB_x1
+      and boxA_y1 < boxB_y2 and boxA_y2 > boxB_y1 then
+      collision = true
+    else
+      collision = false
+    */
+    lda boxA_x1
+    cmp boxB_x2
+    bcs noCollision
+    lda boxA_x2
+    cmp boxB_x1
+    bcc noCollision
+    lda boxA_y1
+    cmp boxB_y2
+    bcs noCollision
+    lda boxA_y2
+    cmp boxB_y1
+    bcc noCollision
+    // collision = true
+    lda #1
+    sta collisionFlag
+    jmp doneCollisionCheck
+  noCollision:
+    // collision = false
+    lda #0
+    sta collisionFlag 
+  doneCollisionCheck:
     rts
   }
 
@@ -112,11 +216,31 @@ SPRITE:
     sbc #BULLET_SPEED
     bcc bulletOffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
     sta bulletY,x
-    jmp doneMovingBullet
+
+    // check for collision with asteroids here by looping through the active asteroids and checking if the bullet's position overlaps with any of the asteroids' positions. If there is a collision, we can handle it by, for example, disabling the bullet and the asteroid and maybe creating an explosion effect.
+    clc
+    lda bulletX,x
+    adc #BULLET_SPRITE_OFFSET_X
+    sta boxA_x1
+    clc
+    lda bulletY,x
+    adc #BULLET_SPRITE_OFFSET_Y
+    sta boxA_y1
+    clc
+    lda bulletX,x
+    adc #BULLET_SPRITE_OFFSET_X+BULLET_SPRITE_WIDTH
+    sta boxA_x2
+    clc
+    lda bulletY,x
+    adc #BULLET_SPRITE_OFFSET_Y+BULLET_SPRITE_HEIGHT
+    sta boxA_y2
+    
+    jsr checkAsteroidCollisions
+    
+    lda collisionFlag     // if collided
+    beq doneMovingBullet  // skip disable if zero
   bulletOffScreen:
-    // disable bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 to effectively remove it from the screen
-    lda #0
-    sta bulletX,x
+    // disable bullet by clearing the corresponding bit in the enabled bitmap
     lda sprite_enabled_bitmap,x
     eor #$FF
     and bullet_enabled_flags
@@ -126,9 +250,51 @@ SPRITE:
     inx
     cpx #2
     bne moveBulletLoop
-
     rts
   }
+
+  checkAsteroidCollisions:
+  {
+    // now loop through active asteroids (using y) and check for collision with bullet using the collision detection routine. We can set the collision variables before calling the routine to specify which two objects we want to check for collision based on their X and Y positions.
+    ldy #0
+  checkAsteroidCollisionLoop:
+    lda asteroid_enabled_flags
+    and sprite_enabled_bitmap,y
+    beq noAsteroidCollisionCheck
+    // asteroid is active, so we set the collision variables for the asteroid's position and call
+    clc
+    lda asteroidX,y
+    adc #ASTEROID_SPRITE_OFFSET_X
+    sta boxB_x1
+    clc
+    lda asteroidY,y
+    adc #ASTEROID_SPRITE_OFFSET_Y
+    sta boxB_y1
+    clc
+    lda asteroidX,y
+    adc #ASTEROID_SPRITE_OFFSET_X+ASTEROID_SPRITE_WIDTH
+    sta boxB_x2
+    clc
+    lda asteroidY,y
+    adc #ASTEROID_SPRITE_OFFSET_Y+ASTEROID_SPRITE_HEIGHT
+    sta boxB_y2
+    jsr checkCollision
+    lda collisionFlag
+    beq noAsteroidCollisionCheck
+    // disable asteroid by clearing the corresponding bit in the enabled bitmap
+    lda sprite_enabled_bitmap,y
+    eor #$FF
+    and asteroid_enabled_flags
+    sta asteroid_enabled_flags
+    // for now, we won't create an explosion effect, but we could set some variables here to create an explosion sprite at the asteroid's position that would be rendered and animated in the main game loop or in the raster interrupt routine.    
+    rts
+  noAsteroidCollisionCheck:
+    iny
+    cpy #5
+    bne checkAsteroidCollisionLoop
+    rts
+  }
+
 
   updateAsteroidState:
   {

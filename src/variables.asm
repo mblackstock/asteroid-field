@@ -5,9 +5,21 @@ temp: .byte 0
 // system vars
 frameCounter: .byte 0
 
+boxA_x1: .byte 0
+boxA_y1: .byte 0
+boxA_x2: .byte 0
+boxA_y2: .byte 0
+
+boxB_x1: .byte 0
+boxB_y1: .byte 0
+boxB_x2: .byte 0
+boxB_y2: .byte 0
+
+collisionFlag: .byte 0 // set to 1 if a collision is detected, otherwise 0
+
 // player position
-playerX: .byte 150
-playerY: .byte 150
+playerX: .byte DEFAULT_PLAYER_X
+playerY: .byte DEFAULT_PLAYER_Y
 playerDirection: .byte DIRECTION_NONE
 playerFired: .byte 0
 fireTimer: .byte FIRE_TIMER_MAX // frames to wait before allowing the player to

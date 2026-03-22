@@ -1,5 +1,10 @@
 
-// ---------- SCREEN CONSTANTS ----------
+// ---------- SCREEN CONSTANTS --------
+
+
+// Visibility: Due to the screen borders, the default visible origin range is
+// roughly X: 24-343 and Y: 50-250.
+// A sprite is 24 pixels wide by 21 pixels high.
 
 .label SCREEN_RAM = $0400
 .label SCREEN_COLOR_RAM  = $d800
