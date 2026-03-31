@@ -9,6 +9,8 @@
 
 .label SPRITE_MULTICOLOR = $d01c
 
+.label SPRITE_COLLISION = $d01e
+
 .label SPRITE_EXTRA_COLOR_1 = $d025
 .label SPRITE_EXTRA_COLOR_2 = $d026
 .label SPRITE_COLOR = $d027
