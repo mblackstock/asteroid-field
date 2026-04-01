@@ -89,6 +89,8 @@ SPRITE:
     lda playerX
     sta bulletX,x
     lda playerY
+    sec
+    sbc #BULLET_Y_OFFSET // set bullet Y position to just above the player sprite
     sta bulletY,x
     // enable bullet by setting the corresponding bit in the enabled bitmap
     lda bullet_enabled_flags
@@ -223,6 +225,8 @@ SPRITE:
     beq noCollision     // If 0, no collision at all
     sta collisionBits   // save collision bits to variable for processing
     jsr checkPlayerAsteroidCollision
+    // cmp #0
+    // beq noCollision  // if player didn't collide with an asteroid, check for bullet-asteroid collisions
     jsr checkBulletAsteroidCollision
   noCollision:          // nothing collided at all!
     rts
@@ -236,11 +240,11 @@ SPRITE:
     beq noCollision
 
     // check player collided with an asteroid.  
-    lda collisionBits
+     lda collisionBits
     and #%11111000
     beq noCollision
 
-    // collided with an asteroid (bits 3-7)
+    // collided with which asteroid (bits 3-7)?
     lsr
     lsr
     lsr
@@ -250,7 +254,7 @@ SPRITE:
     lda temp
     and sprite_enabled_bitmap,x
     beq noAsteroidCollisionCheck
-    // for now, just reset the player position.
+    // for now, just reset the player position.   
     lda #DEFAULT_PLAYER_X
     sta playerX
     lda #DEFAULT_PLAYER_Y
@@ -261,9 +265,12 @@ SPRITE:
     inx
     cpx #5
     bne checkAsteroidCollisionLoop
-  
-  doneAsteroidCollisionCheck:    
-  noCollision:  // no collision at all
+
+  doneAsteroidCollisionCheck:
+    lda #1      // collided, return 1 in A to indicate a collision occurred
+    rts
+  noCollision:  // no collision, return 0 in A
+    lda #0
     rts
   }
 
@@ -274,21 +281,16 @@ SPRITE:
     lda collisionBits
     and #%00000110
     beq noBulletCollision
+    lsr
+    sta temp // temp now has bullet collision bits (bits 1-2)
+
     lda collisionBits
     and #%11111000
     beq noBulletCollision
-
-    lda collisionBits
-    and #%00000110
-    lsr
-    sta temp
-    lda collisionBits
-    and #%11111000
     lsr
     lsr
     lsr
-    sta temp2
-    // temp has bullet indices, temp2 has asteroid indices that are colliding.
+    sta temp2 // temp2 now has asteroid collision bits (bits 3-7)
     
     ldx #0
   checkBulletCollisionLoop:
