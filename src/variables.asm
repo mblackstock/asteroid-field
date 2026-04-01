@@ -1,7 +1,11 @@
 
 // ---------- VARIABLES ----------
 
+collisionBits: .byte 0
 temp: .byte 0
+temp2: .byte 0
+
+tempInterrupt: .byte 0
 // system vars
 frameCounter: .byte 0
 
@@ -26,7 +30,7 @@ fireTimer: .byte FIRE_TIMER_MAX // frames to wait before allowing the player to
 // fire again (to prevent firing too rapidly)
 
 // two bullet positions
-bullet_enabled_flags: .byte 0 // each bit represents whether the corresponding bullet is active or not
+bullet_enabled_flags: .byte 0 // bit 0 = bullet 0, bit 1 = bullet 1 (each bit represents whether the corresponding bullet is active)
 
 bulletX:
   .byte 0
@@ -60,9 +64,10 @@ asteroidY:
   .byte 0
   .byte 0 
 
-asteroid_enabled_flags: .byte 0 // each bit represents whether the corresponding asteroid is active or not
+asteroid_enabled_flags: .byte 0 // each bit (0-4) represents whether asteroid 0-4 is active (bit 0 = asteroid 0, bit 1 = asteroid 1, etc.)
 
-// bitmaps for checking if a bullet or asteroid is enabled based on the bit index
+// Bitmaps for masking or checking if a sprite (bullet or asteroid) is enabled by bit index.
+// Each entry can be ANDed with the enabled flags to test the status of a specific sprite.
 sprite_enabled_bitmap:
   .byte %00000001
   .byte %00000010

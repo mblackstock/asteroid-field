@@ -8,6 +8,7 @@ SPRITE:
     jsr updatePlayerState
     jsr updateBulletState
     jsr updateAsteroidState
+    jsr checkAllCollisions
   }
 
   updatePlayerState:
@@ -53,111 +54,7 @@ SPRITE:
   noMovement:
     // after processing input, reset playerDirection to none
     lda #DIRECTION_NONE
-    sta playerDirection
-
-    // check collision with asteroids here by looping through the active asteroids
-    // and checking if the player's position overlaps with any of the asteroids'
-    // positions. If there is a collision, we can handle it by, for example, ending
-    // the game or resetting the player's position.
-
-    clc
-    lda playerX
-    // add offset for collision detection based on the size of the player's sprite (e.g., 8 pixels)
-    adc #PLAYER_SPRITE_OFFSET_X
-    sta boxA_x1
-    clc
-    lda playerY
-    // add offset for collision detection based on the size of the player's sprite (e.g., 8 pixels)
-    adc #PLAYER_SPRITE_OFFSET_Y
-    sta boxA_y1
-
-    clc
-    lda playerX
-    adc #PLAYER_SPRITE_OFFSET_X+PLAYER_SPRITE_WIDTH
-    sta boxA_x2
-    clc
-    lda playerY
-    adc #PLAYER_SPRITE_OFFSET_Y+PLAYER_SPRITE_HEIGHT
-    sta boxA_y2
-
-    // now loop through active asteroids and check for collision with player using the collision detection routine. We can set the collision variables before calling the routine to specify which two objects we want to check for collision based on their X and Y positions.
-    ldx #0
-  checkAsteroidCollisionLoop:
-    lda asteroid_enabled_flags
-    and sprite_enabled_bitmap,x
-    beq noAsteroidCollisionCheck
-    // asteroid is active, so we set the collision variables for the asteroid's position and call
-    // the collision detection routine to check for collision between the player and this asteroid
-    clc
-    lda asteroidX,x
-    adc #ASTEROID_SPRITE_OFFSET_X
-    sta boxB_x1
-    clc
-    lda asteroidY,x
-    adc #ASTEROID_SPRITE_OFFSET_Y
-    sta boxB_y1
-    clc
-    lda asteroidX,x
-    adc #ASTEROID_SPRITE_OFFSET_X+ASTEROID_SPRITE_WIDTH
-    sta boxB_x2
-    clc
-    lda asteroidY,x
-    adc #ASTEROID_SPRITE_OFFSET_Y+ASTEROID_SPRITE_HEIGHT
-    sta boxB_y2
-    jsr checkCollision
-    lda collisionFlag // side effect setz zero flag
-    beq noAsteroidCollisionCheck
-    // collisionFlag is set, so we have a collision between the player and this asteroid.
-    
-    // handle collision (e.g., end game, reset player position, etc.)
-    // reset position, lose a life, etc. For now, we'll just reset the player's position to the default starting position.
-    lda #DEFAULT_PLAYER_X
-    sta playerX
-    lda #DEFAULT_PLAYER_Y
-    sta playerY
-    lda #0  // reset the flag
-    sta collisionFlag
-    jmp doneCollisionCheck
-    
-  noAsteroidCollisionCheck:
-    inx
-    cpx #5
-    bne checkAsteroidCollisionLoop
-
-  doneCollisionCheck:
-    rts
-  }
-
-  checkCollision:
-  {
-    /*
-    if boxA_x1 < boxB_x2 and boxA_x2 > boxB_x1
-      and boxA_y1 < boxB_y2 and boxA_y2 > boxB_y1 then
-      collision = true
-    else
-      collision = false
-    */
-    lda boxA_x1
-    cmp boxB_x2
-    bcs noCollision
-    lda boxA_x2
-    cmp boxB_x1
-    bcc noCollision
-    lda boxA_y1
-    cmp boxB_y2
-    bcs noCollision
-    lda boxA_y2
-    cmp boxB_y1
-    bcc noCollision
-    // collision = true
-    lda #1
-    sta collisionFlag
-    jmp doneCollisionCheck
-  noCollision:
-    // collision = false
-    lda #0
-    sta collisionFlag 
-  doneCollisionCheck:
+    sta playerDirection 
     rts
   }
 
@@ -199,13 +96,19 @@ SPRITE:
     sta bullet_enabled_flags
 
   doneCreatingBullet:
-    // handled the shot, start the fire timer
+    // handled the shot
     lda #0
     sta playerFired
 
   noBulletFired:
 
-    // update bullet positions by looping through the bullet slots and checking if they are active by looking at the enabled bitmap. If a bullet is active, we update its position by subtracting the bullet speed from its Y position to move it up the screen. If the bullet's Y position goes below 0, we disable the bullet by clearing the corresponding bit in the enabled bitmap and setting its X position to 0 (which we check for at the start of this routine to determine if the bullet is active or not) to effectively remove it from the screen.
+    // update bullet positions by looping through the bullet slots and
+    // checking if they are active by looking at the enabled bitmap.
+    // If a bullet is active, we update its position by subtracting
+    // the bullet speed from its Y position to move it up the screen.
+    // If the bullet's Y position goes below 0, we disable the bullet
+    // by clearing the corresponding bit in the enabled bitmap
+    
     ldx #0
   moveBulletLoop:
     lda bullet_enabled_flags
@@ -216,29 +119,7 @@ SPRITE:
     sbc #BULLET_SPEED
     bcc bulletOffScreen  // if negative, bullet is off screen, so we disable it and skip updating its position
     sta bulletY,x
-
-    // check for collision with asteroids here by looping through the active asteroids and checking if the bullet's position overlaps with any of the asteroids' positions. If there is a collision, we can handle it by, for example, disabling the bullet and the asteroid and maybe creating an explosion effect.
-    clc
-    lda bulletX,x
-    adc #BULLET_SPRITE_OFFSET_X
-    sta boxA_x1
-    clc
-    lda bulletY,x
-    adc #BULLET_SPRITE_OFFSET_Y
-    sta boxA_y1
-    clc
-    lda bulletX,x
-    adc #BULLET_SPRITE_OFFSET_X+BULLET_SPRITE_WIDTH
-    sta boxA_x2
-    clc
-    lda bulletY,x
-    adc #BULLET_SPRITE_OFFSET_Y+BULLET_SPRITE_HEIGHT
-    sta boxA_y2
-    
-    jsr checkAsteroidCollisions
-    
-    lda collisionFlag     // if collided
-    beq doneMovingBullet  // skip disable if zero
+    jmp doneMovingBullet
   bulletOffScreen:
     // disable bullet by clearing the corresponding bit in the enabled bitmap
     lda sprite_enabled_bitmap,x
@@ -252,49 +133,6 @@ SPRITE:
     bne moveBulletLoop
     rts
   }
-
-  checkAsteroidCollisions:
-  {
-    // now loop through active asteroids (using y) and check for collision with bullet using the collision detection routine. We can set the collision variables before calling the routine to specify which two objects we want to check for collision based on their X and Y positions.
-    ldy #0
-  checkAsteroidCollisionLoop:
-    lda asteroid_enabled_flags
-    and sprite_enabled_bitmap,y
-    beq noAsteroidCollisionCheck
-    // asteroid is active, so we set the collision variables for the asteroid's position and call
-    clc
-    lda asteroidX,y
-    adc #ASTEROID_SPRITE_OFFSET_X
-    sta boxB_x1
-    clc
-    lda asteroidY,y
-    adc #ASTEROID_SPRITE_OFFSET_Y
-    sta boxB_y1
-    clc
-    lda asteroidX,y
-    adc #ASTEROID_SPRITE_OFFSET_X+ASTEROID_SPRITE_WIDTH
-    sta boxB_x2
-    clc
-    lda asteroidY,y
-    adc #ASTEROID_SPRITE_OFFSET_Y+ASTEROID_SPRITE_HEIGHT
-    sta boxB_y2
-    jsr checkCollision
-    lda collisionFlag
-    beq noAsteroidCollisionCheck
-    // disable asteroid by clearing the corresponding bit in the enabled bitmap
-    lda sprite_enabled_bitmap,y
-    eor #$FF
-    and asteroid_enabled_flags
-    sta asteroid_enabled_flags
-    // for now, we won't create an explosion effect, but we could set some variables here to create an explosion sprite at the asteroid's position that would be rendered and animated in the main game loop or in the raster interrupt routine.    
-    rts
-  noAsteroidCollisionCheck:
-    iny
-    cpy #5
-    bne checkAsteroidCollisionLoop
-    rts
-  }
-
 
   updateAsteroidState:
   {
@@ -328,7 +166,7 @@ SPRITE:
     lda #0
     sta asteroidY,x
 
-    // set asteroid speed to random value between 1 and 3
+    // set asteroid speed to random value between 1 and 4
     GetRandom() // read random value for asteroid speed
     and #%00000011 // mask to get a value between 0 and 3
     ora #1 // add 1 to get a value between 1 and 4
@@ -339,8 +177,10 @@ SPRITE:
     sta asteroid_enabled_flags
 
     // generate new asteroid spawn timer
-    // GetRandom() 
-    lda #30 // minimum spawn time of 30 frames (0.5 seconds at 60fps)
+    GetRandom()           // get a random value
+    and #%00011111        // mask to 0-31
+    clc
+    adc #30               // add minimum spawn time of 30 frames (range: 30-61)
     sta asteroid_spawn_timer 
   doneAsteroidSpawn:
 
@@ -374,9 +214,117 @@ SPRITE:
     inx
     cpx #5
     bne moveAsteroidLoop
-      
-    // check for collisions between player and asteroids, and bullets and asteroids
+    rts
+  }
 
+  checkAllCollisions:
+  { 
+    lda SPRITE_COLLISION
+    beq noCollision     // If 0, no collision at all
+    sta collisionBits   // save collision bits to variable for processing
+    jsr checkPlayerAsteroidCollision
+    jsr checkBulletAsteroidCollision
+  noCollision:          // nothing collided at all!
+    rts
+  }
+
+  checkPlayerAsteroidCollision:
+  {
+    // first check collision between player and asteroids.
+    lda collisionBits 
+    and #%00000001    
+    beq noCollision
+
+    // check player collided with an asteroid.  
+    lda collisionBits
+    and #%11111000
+    beq noCollision
+
+    // collided with an asteroid (bits 3-7)
+    lsr
+    lsr
+    lsr
+    sta temp
+    ldx #0
+  checkAsteroidCollisionLoop:
+    lda temp
+    and sprite_enabled_bitmap,x
+    beq noAsteroidCollisionCheck
+    // for now, just reset the player position.
+    lda #DEFAULT_PLAYER_X
+    sta playerX
+    lda #DEFAULT_PLAYER_Y
+    sta playerY
+    // TODO: Add explosion logic here (e.g., set variables to create an explosion sprite at the asteroid's position)
+    jmp doneAsteroidCollisionCheck
+  noAsteroidCollisionCheck:
+    inx
+    cpx #5
+    bne checkAsteroidCollisionLoop
+  
+  doneAsteroidCollisionCheck:    
+  noCollision:  // no collision at all
+    rts
+  }
+
+  checkBulletAsteroidCollision:
+  { 
+    
+    // now check for collisions between bullets and asteroids.
+    lda collisionBits
+    and #%00000110
+    beq noBulletCollision
+    lda collisionBits
+    and #%11111000
+    beq noBulletCollision
+
+    lda collisionBits
+    and #%00000110
+    lsr
+    sta temp
+    lda collisionBits
+    and #%11111000
+    lsr
+    lsr
+    lsr
+    sta temp2
+    // temp has bullet indices, temp2 has asteroid indices that are colliding.
+    
+    ldx #0
+  checkBulletCollisionLoop:
+    lda temp
+    and sprite_enabled_bitmap,x
+    beq noBulletCollisionCheck
+
+    // bullet x is involved in the collision, disable the bullet
+    lda sprite_enabled_bitmap,x
+    eor #$FF
+    and bullet_enabled_flags
+    sta bullet_enabled_flags
+
+    ldy #0
+  checkAsteroidCollisionLoop2:
+    lda temp2
+    and sprite_enabled_bitmap,y
+    beq noAsteroidCollisionCheck2
+    // asteroid Y is involved in the collision, disable the asteroid
+    lda sprite_enabled_bitmap,y
+    eor #$FF
+    and asteroid_enabled_flags
+    sta asteroid_enabled_flags
+    // TODO: asteroid explosion
+    jmp doneAsteroidCollisionCheck2
+  noAsteroidCollisionCheck2:
+    iny
+    cpy #5
+    bne checkAsteroidCollisionLoop2
+  doneAsteroidCollisionCheck2:
+  noBulletCollisionCheck:
+    inx
+    cpx #2
+    bne checkBulletCollisionLoop
+
+  noBulletCollision:  // no bullet collision
     rts
   }
 
@@ -395,10 +343,10 @@ SPRITE:
     // update SPRITE_ENABLE register based on which bullets are active by checking the bullet enabled bitmap and setting the corresponding bits in the sprite enable register for the bullet sprites (bits 1 and 2)
     lda SPRITE_ENABLE
     and #%11111001
-    sta temp
+    sta tempInterrupt
     lda bullet_enabled_flags
     asl 
-    ora temp
+    ora tempInterrupt
     sta SPRITE_ENABLE
 
     ldx #0
@@ -424,12 +372,12 @@ SPRITE:
     // update asteroids that are enabled
     lda SPRITE_ENABLE
     and #%00000111
-    sta temp
+    sta tempInterrupt
     lda asteroid_enabled_flags
     asl // shift left 3 to move the enabled bits into the sprite enable bit positions for the asteroid sprites (bits 3-7)
     asl
     asl
-    ora temp
+    ora tempInterrupt
     sta SPRITE_ENABLE
 
     // update asteroid sprite position registers based on which asteroids are active. We check the enabled bitmap to determine which asteroids are active, and for each active asteroid, we copy its X and Y position to the corresponding sprite registers. Since we have 4 asteroid sprites that can be active at once, we loop through the first 4 bits of the enabled bitmap to check which asteroids are active and update their positions accordingly.
