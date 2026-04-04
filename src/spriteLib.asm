@@ -9,6 +9,8 @@ SPRITE:
     jsr updateBulletState
     jsr updateAsteroidState
     jsr checkAllCollisions
+    jsr updateSpriteRegisters
+    rts
   }
 
   updatePlayerState:
@@ -240,7 +242,7 @@ SPRITE:
     beq noCollision
 
     // check player collided with an asteroid.  
-     lda collisionBits
+    lda collisionBits
     and #%11111000
     beq noCollision
 
@@ -305,22 +307,30 @@ SPRITE:
     sta bullet_enabled_flags
 
     ldy #0
-  checkAsteroidCollisionLoop2:
+  checkAsteroidCollisionLoop:
     lda temp2
     and sprite_enabled_bitmap,y
-    beq noAsteroidCollisionCheck2
+    beq noAsteroidCollisionCheck
     // asteroid Y is involved in the collision, disable the asteroid
     lda sprite_enabled_bitmap,y
     eor #$FF
     and asteroid_enabled_flags
     sta asteroid_enabled_flags
+    txa // save x to stack before using A for score update
+    pha
+    lda #1      // 100 points for destroying an asteroid
+    ldx #2
+    jsr HUD.addToScore  // add to score for destroying an asteroid (for testing, we can add a flat amount for each asteroid destroyed)
+    jsr HUD.drawScore
+    pla
+    tax
     // TODO: asteroid explosion
-    jmp doneAsteroidCollisionCheck2
-  noAsteroidCollisionCheck2:
+    jmp doneAsteroidCollisionCheck
+  noAsteroidCollisionCheck:
     iny
     cpy #5
-    bne checkAsteroidCollisionLoop2
-  doneAsteroidCollisionCheck2:
+    bne checkAsteroidCollisionLoop
+  doneAsteroidCollisionCheck:
   noBulletCollisionCheck:
     inx
     cpx #2

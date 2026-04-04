@@ -27,6 +27,9 @@ gameSetup:
   // clear the screen
   jsr SCREEN_CLEAR
 
+  jsr HUD.drawScoreText
+  jsr HUD.drawScore
+
   //set up our sprites
 
   SetUpSprite(0, 150, 150, COLOR_GREEN, shipSprite)
@@ -42,6 +45,14 @@ gameSetup:
   EnableSprite(0)
   // EnableSprite(2)
   // EnableSprite(3)
+
+  // lda #2
+  // ldx #1
+  // jsr HUD.addToScore  // add 2 to the TENS place (for testing)
+  // lda #9
+  // ldx #1
+  // jsr HUD.addToScore  // add 9 to the TENS place (for testing)
+
 
   GetRandom() // read random value for asteroid spawn timer
   sta asteroid_spawn_timer

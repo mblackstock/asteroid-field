@@ -22,6 +22,7 @@ BasicUpstart2(main)
 #import "inputLib.asm"
 #import "spriteLib.asm"
 #import "interruptLib.asm"
+#import "hudLib.asm"
 
 *=SPRITES_ADDRESS "Sprites"
 #import "sprites/sprites.asm"

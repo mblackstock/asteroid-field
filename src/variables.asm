@@ -77,3 +77,16 @@ sprite_enabled_bitmap:
   .byte %00100000
   .byte %01000000
   .byte %10000000
+
+scoreText: 
+  .encoding "screencode_upper"
+  .text "SCORE: "
+
+score:
+  .byte 0
+  .byte 0
+  .byte 0
+  .byte 0
+  .byte 0
+  .byte 0
+  .byte 0

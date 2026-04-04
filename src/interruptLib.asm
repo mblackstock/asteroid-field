@@ -55,7 +55,7 @@ INTERRUPT:
 
 		// // CheckRoomStatus(ROOM_LOADING)
 		// beq skipUpdateSpriteRegisters
-		jsr SPRITE.updateSpriteRegisters
+		//jsr SPRITE.updateSpriteRegisters
 		// skipUpdateSpriteRegisters:
 
 		// lda playMusic
