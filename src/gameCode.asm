@@ -58,17 +58,21 @@ gameSetup:
   sta asteroid_spawn_timer
 
 gameLoop:
+  // busy wait until we hit certain raster line to update our game
+  // state only once per frame
+
   WaitFrame:
-    lda CURRENT_RASTER_LINE   // Load current raster line
-    cmp #$f8                // Compare to a specific line (e.g., $F8)
-    bne WaitFrame           // Loop until raster reaches that line
+    lda CURRENT_RASTER_LINE
+    cmp #$f8
+    bne WaitFrame           
     
   jsr INPUT.readJoystick2
+  // update game state in our variables
   jsr SPRITE.updateSpritePositions
 
-  // sprites update their positions in the interrupt routine,
+  // NOTE: we update registers for sprites in the interrupt routine,
   // which runs every frame, so they will be updated based on the
-  // new player position on the next frame. This way we can ensure
+  // new sprite positions on the next frame. This way we can ensure
   // that sprite updates are synced with the screen refresh and
   // avoid any potential flickering or tearing issues that could
   // arise from updating sprite positions in the main game loop.

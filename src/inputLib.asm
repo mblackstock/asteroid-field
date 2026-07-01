@@ -18,7 +18,6 @@ INPUT:
     and #JOY_UP
     beq joy2Up
     jmp checkJoy2Down
-
   joy2Up:
     lda playerDirection
     ora #DIRECTION_UP
@@ -58,13 +57,13 @@ INPUT:
     lda JOYSTICK_2
     and #JOY_FIRE
     beq joy2Fire
-    jmp doneReadJoystick2
+    jmp doneReadJoystick
   joy2Fire:
   // if fireTimer is above 0, it means the gun is still in cooldown,
   // so we skip firing a bullet
     lda fireTimer
     beq fireButtonReady
-    jmp doneReadJoystick2
+    jmp doneReadJoystick
   fireButtonReady:
     // inc SCREEN_BORDER_COLOR
     // fire a bullet and restart the fire timer.
@@ -73,6 +72,6 @@ INPUT:
     lda #FIRE_TIMER_MAX
     sta fireTimer
 
-  doneReadJoystick2:
+  doneReadJoystick:
      rts
 }

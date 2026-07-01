@@ -53,17 +53,17 @@ INTERRUPT:
 
 		inc frameCounter
 
+    // Here you can add any code that should run on every raster interrupt, such as updating sprite positions, checking for collisions, or playing music.
+
 		// // CheckRoomStatus(ROOM_LOADING)
 		// beq skipUpdateSpriteRegisters
-		//jsr SPRITE.updateSpriteRegisters
+		jsr SPRITE.updateSpriteRegisters
 		// skipUpdateSpriteRegisters:
 
 		// lda playMusic
 		// beq dontPlayMusic
 		// 	jsr MUSIC_PLAY
 		// dontPlayMusic:
-
-    // Here you can add any code that should run on every raster interrupt, such as updating sprite positions, checking for collisions, or playing music.
 
 		jmp INTERRUPT_RETURN					// KERNAL interrupt return routine
 }

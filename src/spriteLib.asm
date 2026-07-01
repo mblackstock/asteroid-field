@@ -9,7 +9,7 @@ SPRITE:
     jsr updateBulletState
     jsr updateAsteroidState
     jsr checkAllCollisions
-    jsr updateSpriteRegisters
+    // jsr updateSpriteRegisters
     rts
   }
 
@@ -223,14 +223,15 @@ SPRITE:
 
   checkAllCollisions:
   { 
-    lda SPRITE_COLLISION
+    lda collisionBits 
     beq noCollision     // If 0, no collision at all
-    sta collisionBits   // save collision bits to variable for processing
+
     jsr checkPlayerAsteroidCollision
-    // cmp #0
-    // beq noCollision  // if player didn't collide with an asteroid, check for bullet-asteroid collisions
     jsr checkBulletAsteroidCollision
   noCollision:          // nothing collided at all!
+
+    lda #0
+    sta collisionBits   // reset collision bits after processing collisions
     rts
   }
 
@@ -308,15 +309,23 @@ SPRITE:
 
     ldy #0
   checkAsteroidCollisionLoop:
-    lda temp2
+    lda temp2   // contains a copy of the asteroid collision bits
     and sprite_enabled_bitmap,y
     beq noAsteroidCollisionCheck
+
+    // check  whether asteroid has already been disabled by a previous
+    // bullet collision check 
+    lda asteroid_enabled_flags
+    and sprite_enabled_bitmap,y
+    beq noAsteroidCollisionCheck  // skip if asteroid already disabled
+
     // asteroid Y is involved in the collision, disable the asteroid
+    // and award score
     lda sprite_enabled_bitmap,y
     eor #$FF
     and asteroid_enabled_flags
     sta asteroid_enabled_flags
-    txa // save x to stack before using A for score update
+    txa // save x to stack before using a as param for score update
     pha
     lda #1      // 100 points for destroying an asteroid
     ldx #2
@@ -346,21 +355,24 @@ SPRITE:
 
     // player is always enabled
 
-    // copy playerX and playerY to the first sprite's position registers
+    // copy playerX and playerY to the player sprite's position registers
     lda playerX
     sta SPRITE_X
     lda playerY
     sta SPRITE_Y 
 
-    // update SPRITE_ENABLE register based on which bullets are active by checking the bullet enabled bitmap and setting the corresponding bits in the sprite enable register for the bullet sprites (bits 1 and 2)
+    // update SPRITE_ENABLE register based on which bullets are active by
+    // checking the bullet enabled bitmap and setting the corresponding bits
+    // in the sprite enable register for the bullet sprites (bits 1 and 2)
     lda SPRITE_ENABLE
-    and #%11111001
+    and #%11111001            // turn off bits 1 and 2
     sta tempInterrupt
-    lda bullet_enabled_flags
-    asl 
+    lda bullet_enabled_flags  // flags in bits 0-1
+    asl                       // flags in bits 1-2 for sprite enable register
     ora tempInterrupt
     sta SPRITE_ENABLE
 
+    // update bullets
     ldx #0
   updateBulletLoop:
     lda bullet_enabled_flags
@@ -410,6 +422,13 @@ SPRITE:
     inx
     cpx #5
     bne updateAsteroidLoop
+
+    // read collision bits from the hardware collision registers and
+    // save to a variable for game processing. The collision registers
+    // will automatically reset after being read, so we only read them
+    // once per frame in the sprite update routine.
+    lda SPRITE_COLLISION
+    sta collisionBits   // save collision bits to variable for game processing
 
     rts
   }
